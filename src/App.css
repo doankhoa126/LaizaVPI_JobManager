@@ -1,0 +1,9 @@
+.App-header {
+  background-image: linear-gradient(to right,#83b5ff, #9cc2ff, #c48fdf, #f9bfff,  #facfef);
+  min-height: 100vh;
+ 
+  color: white;
+  padding-left : 20vh;
+  padding-right : 20vh;
+}
+
