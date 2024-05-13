@@ -29,7 +29,6 @@ const columns = [
       return vietnamDateTime;
     } 
   },
-  
   { id: 'img_id', label: 'Id ảnh', minWidth: 200 },
   { id: 'name_job', label: 'Tên công việc', minWidth: 200 },
   { id: 'note_job', label: 'Ghi chú', minWidth: 200 },
@@ -38,32 +37,38 @@ const columns = [
 ];
 
 const StickyHeadTable = () => {
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const [rows, setRows] = useState([]);
+  const [filteredRows, setFilteredRows] = useState([]);
   const [sort, setSort] = useState({
     sortBy: null,
     sortDirection: 'asc',
   });
   const [searchValue, setSearchValue] = useState('');
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const { data, error } = await supabase
-          .from('checking_job_management')
-          .select('*');
-          
-        if (error) {
-          console.error('Error fetching data:', error.message);
-        } else {
-          setRows(data);
-        }
-      } catch (error) {
+  const fetchData = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('checking_job_management')
+        .select('*');
+        
+      if (error) {
         console.error('Error fetching data:', error.message);
+        setError(error.message);
+      } else {
+        setRows(data);
+        setFilteredRows(data);
+        setError(null);
       }
+    } catch (error) {
+      console.error('Error fetching data:', error.message);
+      setError(error.message);
     }
+  };
    
+  useEffect(() => {
     fetchData();
   }, []);
 
@@ -75,17 +80,26 @@ const StickyHeadTable = () => {
     });
   };
 
+  const handleSearchClick = async () => {
+    try {
+      const filteredRows = rows.filter((row) =>
+        Object.values(row).some(
+          (value) => typeof value === 'string' && value.toLowerCase().includes(searchValue.toLowerCase())
+        )
+      );
+      setFilteredRows(filteredRows);
+    } catch (error) {
+      console.error('Error searching data:', error.message);
+      setError(error.message);
+    }
+  };
+  
+
   const handleSearchChange = (event) => {
     setSearchValue(event.target.value);
-  };
-
-  const handleSearch = () => {
-    const filteredRows = rows.filter((row) =>
-      Object.values(row).some(
-        (value) => typeof value === 'string' && value.toLowerCase().includes(searchValue.toLowerCase())
-      )
-    );
-    setRows(filteredRows);
+    if (event.target.value.trim() === '') {
+      setFilteredRows(rows);
+    }
   };
 
   const handleChangePage = (event, newPage) => {
@@ -98,15 +112,29 @@ const StickyHeadTable = () => {
   };
 
   return (
-    <div style={{ maxWidth: '100%', overflowX: 'hidden' }}>
+    <div style={{ maxWidth: '100%', overflowX: 'hidden', marginTop: '0' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '20px' }}>
-        <img src={logo} className="App-logo" alt="logo" style={{ width: '150px', height: '140px', marginRight: '35%' }} />
-        <h1 style={{ fontSize: '42px', flexGrow: 1 }}>Quản lý công việc</h1>
+        <img src={logo} className="App-logo" alt="logo" style={{ width: '150px', height: '140px', marginRight: '0' }} />
+        <h1 style={{ fontSize: '42px', flexGrow: 1 ,textAlign: 'center',marginRight: '4em'}}>Quản lý công việc</h1>
       </div>
 
       <div style={{ marginBottom: '20px', textAlign: 'right', marginRight: '10px' }}>
-        <TextField id="search" label="Search" variant="outlined" size="small" value={searchValue} onChange={handleSearchChange} />
-        <Button variant="contained" sx={{ marginLeft: '10px' }} onClick={handleSearch}>Search</Button>
+        <TextField 
+          id="search" 
+          label="Search" 
+          variant="outlined" 
+          size="small" 
+          value={searchValue} 
+          onChange={handleSearchChange} 
+        />
+        <Button 
+          id="searchBtn" 
+          variant="contained" 
+          sx={{ marginLeft: '10px' }} 
+          onClick={handleSearchClick} 
+        >
+          Search
+        </Button>
       </div>
       <Paper sx={{ width: '100%', overflowX: 'auto' }}>
         <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)' }}>
@@ -131,38 +159,27 @@ const StickyHeadTable = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows
+              {filteredRows
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .sort((a, b) => {
-                  if (a[sort.sortBy] < b[sort.sortBy]) {
-                    return sort.sortDirection === 'asc' ? -1 : 1;
-                  }
-                  if (a[sort.sortBy] > b[sort.sortBy]) {
-                    return sort.sortDirection === 'asc' ? 1 : -1;
-                  }
-                  return 0;
-                })
-                .map((row) => {
-                  return (
-                    <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
-                      {columns.map((column) => {
-                        const value = row[column.id];
-                        return (
-                          <TableCell key={column.id} align="center" style={{ fontSize: '16px' }}>
-                            {column.format ? column.format(value) : value}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  );
-                })}
+                .map((row) => (
+                  <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
+                    {columns.map((column) => {
+                      const value = row[column.id];
+                      return (
+                        <TableCell key={column.id} align="center" style={{ fontSize: '16px' }}>
+                          {column.format ? column.format(value) : value}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
         </TableContainer>
         <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
           component="div"
-          count={rows.length}
+          count={filteredRows.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}
