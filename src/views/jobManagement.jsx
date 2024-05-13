@@ -74,12 +74,24 @@ const StickyHeadTable = () => {
 
   const handleSort = (columnId) => {
     const isAsc = sort.sortBy === columnId && sort.sortDirection === 'asc';
+    const sortedRows = [...filteredRows].sort((a, b) => {
+      if (columnId === 'created_at') {
+        // Convert timestamps to moment objects for proper comparison
+        const dateA = moment.utc(a[columnId]);
+        const dateB = moment.utc(b[columnId]);
+        return isAsc ? dateA - dateB : dateB - dateA;
+      } else {
+        // For other columns, use simple string comparison
+        return isAsc ? a[columnId].localeCompare(b[columnId]) : b[columnId].localeCompare(a[columnId]);
+      }
+    });
+    setFilteredRows(sortedRows);
     setSort({
       sortBy: columnId,
       sortDirection: isAsc ? 'desc' : 'asc',
     });
   };
-
+  
   const handleSearchClick = async () => {
     try {
       const filteredRows = rows.filter((row) =>
