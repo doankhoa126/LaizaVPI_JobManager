@@ -12,6 +12,7 @@ import Button from '@mui/material/Button';
 import { createClient } from '@supabase/supabase-js';
 import moment from 'moment-timezone';
 import logo from '../logoVPI_vr2.png';
+import './jobManagement.css'; // Import CSS file
 
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 const supabaseKey = process.env.REACT_APP_SUPABASE_KEY;
@@ -19,15 +20,15 @@ const supabaseKey = process.env.REACT_APP_SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const columns = [
-  { id: 'id', label: 'ID', minWidth: 100 }, 
-  { 
-    id: 'created_at', 
-    label: 'Thời gian', 
-    minWidth: 200, 
+  { id: 'id', label: 'ID', minWidth: 100 },
+  {
+    id: 'created_at',
+    label: 'Thời gian',
+    minWidth: 200,
     format: (id) => {
       const vietnamDateTime = moment.utc(id).tz('Asia/Ho_Chi_Minh').format('DD-MM-yyyy, HH:mm:ss');
       return vietnamDateTime;
-    } 
+    }
   },
   { id: 'img_id', label: 'Id ảnh', minWidth: 200 },
   { id: 'name_job', label: 'Tên công việc', minWidth: 200 },
@@ -47,13 +48,15 @@ const StickyHeadTable = () => {
   });
   const [searchValue, setSearchValue] = useState('');
   const [error, setError] = useState(null);
+  const [imageSrc, setImageSrc] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
 
   const fetchData = async () => {
     try {
       const { data, error } = await supabase
         .from('checking_job_management')
         .select('*');
-        
+
       if (error) {
         console.error('Error fetching data:', error.message);
         setError(error.message);
@@ -67,7 +70,7 @@ const StickyHeadTable = () => {
       setError(error.message);
     }
   };
-   
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -91,7 +94,7 @@ const StickyHeadTable = () => {
       sortDirection: isAsc ? 'desc' : 'asc',
     });
   };
-  
+
   const handleSearchClick = async () => {
     try {
       const filteredRows = rows.filter((row) =>
@@ -105,7 +108,6 @@ const StickyHeadTable = () => {
       setError(error.message);
     }
   };
-  
 
   const handleSearchChange = (event) => {
     setSearchValue(event.target.value);
@@ -123,27 +125,40 @@ const StickyHeadTable = () => {
     setPage(0);
   };
 
+  const handleImgIdClick = (imgId) => {
+    if (imgId !== 'NULL') {
+      const imageUrl = `https://fkbcatvpvqqhydnvqnko.supabase.co/storage/v1/object/public/tracking_number_img/${imgId}.jpg`;
+      setImageSrc(imageUrl);
+      setIsOpen(true);
+    }
+  };
+
+  const handleClose = () => {
+    setIsOpen(false);
+    setImageSrc('');
+  };
+
   return (
     <div style={{ maxWidth: '100%', overflowX: 'hidden', marginTop: '0' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '20px' }}>
         <img src={logo} className="App-logo" alt="logo" style={{ width: '150px', height: '140px', marginRight: '0' }} />
-        <h1 style={{ fontSize: '42px', flexGrow: 1 ,textAlign: 'center',marginRight: '4em'}}>Quản lý công việc</h1>
+        <h1 style={{ fontSize: '42px', flexGrow: 1, textAlign: 'center', marginRight: '4em' }}>Quản lý công việc</h1>
       </div>
 
       <div style={{ marginBottom: '20px', textAlign: 'right', marginRight: '10px' }}>
-        <TextField 
-          id="search" 
-          label="Search" 
-          variant="outlined" 
-          size="small" 
-          value={searchValue} 
-          onChange={handleSearchChange} 
+        <TextField
+          id="search"
+          label="Search"
+          variant="outlined"
+          size="small"
+          value={searchValue}
+          onChange={handleSearchChange}
         />
-        <Button 
-          id="searchBtn" 
-          variant="contained" 
-          sx={{ marginLeft: '10px' }} 
-          onClick={handleSearchClick} 
+        <Button
+          id="searchBtn"
+          variant="contained"
+          sx={{ marginLeft: '10px' }}
+          onClick={handleSearchClick}
         >
           Search
         </Button>
@@ -177,6 +192,18 @@ const StickyHeadTable = () => {
                   <TableRow hover role="checkbox" tabIndex={-1} key={row.id}>
                     {columns.map((column) => {
                       const value = row[column.id];
+                      if (column.id === 'img_id') {
+                        return (
+                          <TableCell
+                            key={column.id}
+                            align="center"
+                            style={{ fontSize: '16px', cursor: 'pointer', color: 'black' }}
+                            onClick={() => handleImgIdClick(value)}
+                          >
+                            {value}
+                          </TableCell>
+                        );
+                      }
                       return (
                         <TableCell key={column.id} align="center" style={{ fontSize: '16px' }}>
                           {column.format ? column.format(value) : value}
@@ -198,6 +225,14 @@ const StickyHeadTable = () => {
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
       </Paper>
+      {isOpen && (
+        <div className="modal" onClick={handleClose}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <img src={imageSrc} alt="Image" style={{ width: '100vh', height: '100vh', objectFit: 'contain' }} />
+
+          </div>
+        </div>
+      )}
     </div>
   );
 };
